@@ -5,5 +5,6 @@ create table post (
   created timestamp not null default current_timestamp ,
   title text not null ,
   description text not null ,
-  color text not null
+  color text not null,
+  likes int not null
 );
