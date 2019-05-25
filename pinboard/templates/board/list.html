@@ -8,15 +8,33 @@
 
 {% block content %}
     <div class="row">
-        {% for post in  posts %}
-            <div class="col-md-6 col-lg-3">
+        {% for post in posts %}
+            <form method="post" action="/" class="col-md-6 col-lg-3">
                 <div class="card text-white bg-{{ post.color }} mb-3" style="max-width: 18rem;">
-                    <div class="card-header">{{ post.title }}</div>
+                    <div class="card-header">{{ post.id }} - {{ post.title }}</div>
                     <div class="card-body">
                         <p class="card-text">{{ post.description }}</p>
                     </div>
+                    {% if post.id in liked_posts %}
+                        <button id="btn_like" class="btn btn-light btn-sm" disabled>
+                            <i class="fas fa-thumbs-up"></i>
+                        </button>                    {% else %}
+                        <button id="btn_like" type="submit" class="btn btn-light btn-sm">
+                            <i class="far fa-thumbs-up"></i>
+                        </button>
+                    {% endif %}
+                    <input type="hidden" id="post_id" name="post_id" value={{ post.id }}>
                 </div>
-            </div>
+            </form>
         {% endfor %}
     </div>
 {% endblock %}
+
+{#
+<script>
+    const btn_like = document.querySelector('#btn_like');
+
+    btn_like.onclick = function () {
+        this.style.backgroundColor = "red";
+    }
+</script>#}
