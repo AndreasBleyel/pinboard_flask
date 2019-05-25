@@ -1,8 +1,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for, make_response
 from pinboard.db import get_db
 import json
+from _datetime import datetime
 
 bp = Blueprint("board", __name__)
+
+def evaluate_prio(elem):
+    fmt = '%Y-%m-%d %H:%M:%S'
+    today = datetime.today()
+    created = datetime.strptime(elem["created"], fmt)
+    dif = today - created
+    margin = int(round(dif.total_seconds() / 60)) - 120
+    prio = 50 + elem["likes"] * 50 - margin
+    print("ID: {}, Margin: {}, Likes: {}, Prio: {}".format(elem["id"], margin, elem["likes"], prio))
+    return prio
 
 
 @bp.route("/", methods=("GET", "POST"))
@@ -19,14 +30,9 @@ def list():
     for id in liked_posts_str:
         liked_posts_int.append(int(id))
 
-    for post in posts:
-        print(post["id"])
-        if post["id"] in liked_posts_int:
-            print("yes")
-        else:
-            print("no")
 
     if request.method == "GET":
+        posts.sort(key=evaluate_prio, reverse=True)
         return render_template("board/list.html", posts=posts, liked_posts=liked_posts_int)
     else:
         db = get_db()
@@ -44,6 +50,8 @@ def list():
 
         posts = db.execute("SELECT * FROM post ORDER BY created DESC").fetchall()
         db.commit()
+
+        posts.sort(key=evaluate_prio, reverse=True)
 
         resp = make_response(render_template("board/list.html", posts=posts, liked_posts=liked_posts_int))
         resp.set_cookie("ids", json.dumps(liked_posts_str))
