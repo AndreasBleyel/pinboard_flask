@@ -5,22 +5,34 @@ from _datetime import datetime
 
 bp = Blueprint("board", __name__)
 
+
 def evaluate_prio(elem):
     fmt = '%Y-%m-%d %H:%M:%S'
     today = datetime.today()
     created = datetime.strptime(elem["created"], fmt)
     dif = today - created
+
+    #Zeitunterschied zwischen Server und Lokal sind 120 Minuten
+    #daher Abzug von 120 von der errechneten Margin
     margin = int(round(dif.total_seconds() / 60)) - 120
+
+    #50 Punkte zum Start jedes Pins
+    #jeder Like * 50 - jeder Like zählt 50 Punkte
+    #Zeit seit Erstellung in Minuten wird abgezogen
+    #Umso höher das Ergebniss, desto höher wird der Pin priorisiert
     prio = 50 + elem["likes"] * 50 - margin
-    print("ID: {}, Margin: {}, Likes: {}, Prio: {}".format(elem["id"], margin, elem["likes"], prio))
+
+    #print("ID: {}, Margin: {}, Likes: {}, Prio: {}".format(elem["id"], margin, elem["likes"], prio))
     return prio
 
+def get_all_posts(db):
+    return db.execute("SELECT * FROM post ORDER BY created DESC").fetchall()
 
 @bp.route("/", methods=("GET", "POST"))
 def list():
     db = get_db()
-    posts = db.execute("SELECT * FROM post ORDER BY created DESC").fetchall()
 
+    posts = get_all_posts(db)
     liked_posts_str = {}
 
     if request.cookies.get("ids"):
@@ -30,13 +42,10 @@ def list():
     for id in liked_posts_str:
         liked_posts_int.append(int(id))
 
-
     if request.method == "GET":
         posts.sort(key=evaluate_prio, reverse=True)
         return render_template("board/list.html", posts=posts, liked_posts=liked_posts_int)
     else:
-        db = get_db()
-
         if request.form["post_id"] in liked_posts_str:
             del liked_posts_str[request.form["post_id"]]
             db.execute("UPDATE post SET likes = likes -1 WHERE id= ? ", request.form["post_id"])
@@ -48,7 +57,7 @@ def list():
         for id in liked_posts_str:
             liked_posts_int.append(int(id))
 
-        posts = db.execute("SELECT * FROM post ORDER BY created DESC").fetchall()
+        posts = get_all_posts(db)
         db.commit()
 
         posts.sort(key=evaluate_prio, reverse=True)
